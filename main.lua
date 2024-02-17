@@ -3,31 +3,35 @@ local root_dir = ""
 
 -- Push
 local push
-local gameWidth, gameHeight = 320, 180
+local gameWidth, gameHeight = 640, 360
 local windowWidth, windowHeight = love.window.getDesktopDimensions()
 windowWidth, windowHeight = windowWidth*.7, windowHeight*.7
+
+-- Client data
+local player
+
+-- Camera library
+local camera
+
+-- Camera object
+local cam
 
 -- Simple Tiled Implementation 
 local sti
 
--- List of images
-local images
-
--- List of maps
-local maps
+-- Data table for things like maps and images
+local data
 
 -- Current map on display
 local current_map
 
--- Defines the game workspace for objects
+-- Manages objects
 local game
 
--- Functions for things to do with objects
-local object
-
-
 function love.load()
-    
+    camera = require 'libraries.camera'
+    cam = camera()
+
     sti = require 'libraries/sti'
     push = require 'libraries/push'
 
@@ -35,18 +39,25 @@ function love.load()
 
     push:setupScreen(gameWidth, gameHeight, windowWidth, windowHeight, {fullscreen = false, pixelperfect = true})
 
-    images = {}
+    player = {
+        speed = 100,
+        x = 0,
+        y = 0
+    }
+
+    local data = {}
+
+    data.images = {}
     for _,file in pairs(love.filesystem.getDirectoryItems(root_dir.."sprites/")) do
-        images[file] = {}
+        data.images[file] = {}
         for _,image in pairs(love.filesystem.getDirectoryItems(root_dir.."sprites/"..file.."/")) do
-            images[file][image] = love.graphics.newImage(root_dir.."sprites/"..file.."/"..image.."/")
+            data.images[file][image] = love.graphics.newImage(root_dir.."sprites/"..file.."/"..image.."/")
         end
     end
 
-    maps = {}
+    data.maps = {}
     for _,map in pairs(love.filesystem.getDirectoryItems(root_dir.."maps/mapfiles/")) do
-        print(map)
-        maps[map] = sti(root_dir.."maps/mapfiles/"..map)
+        data.maps[map] = sti(root_dir.."maps/mapfiles/"..map)
     end
 
     game = {
@@ -58,19 +69,19 @@ function love.load()
         hud = {}
     }
 
-    object = {
+    game.object = {
         default_properties = {
             type = "sprite",
             x = 0,
             y = 0,
             r = 0,
-            texture = images.error["error.png"],
+            texture = data.images.error["error.png"],
             sx = 1,
             sy = 1
         }
     }
 
-    function object:new(objectname, location, properties)
+    function game.object:new(objectname, location, properties)
         location[objectname] = {}
         for property,value in pairs(object.default_properties) do
             location[objectname][property] = value
@@ -83,30 +94,53 @@ function love.load()
         end
     end
 
-    function object:remove(object)
+    function game.object:remove(object)
         object = nil
     end
 
-    current_map = maps["leveltest.lua"]
+    current_map = data.maps["menu.lua"]
 end
 
 function love.update(dt)
+    if love.keyboard.isDown('left') then
+        player.x = player.x - player.speed * dt
+    elseif love.keyboard.isDown('right') then
+        player.x = player.x + player.speed * dt
+    end
 
+    if love.keyboard.isDown('up') then
+        player.y = player.y - player.speed * dt
+    elseif love.keyboard.isDown('down') then
+        player.y = player.y + player.speed * dt
+    end
+
+    cam:lookAt(player.x, player.y)
 end
 
 function love.draw()
+
+    cam:attach()
+
     push:start()
-    
-    current_map:draw()
+
+    for _,layer in pairs(current_map.layers) do
+        current_map:drawLayer(layer)
+    end
 
     for category_name,current_category in pairs(game.world) do
         for _,current_object in pairs(current_category) do
             love.graphics.draw(current_object.texture, current_object.x, current_object.y, current_object.r, current_object.sx, current_object.sy)
         end
     end
+    
+    cam:detach()
+
     for _,current_object in pairs(game.hud) do
         love.graphics.draw(current_object.texture, current_object.x, current_object.y, current_object.r, current_object.sx, current_object.sy)
     end
 
+    
+
     push:finish()
+
 end
