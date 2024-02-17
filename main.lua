@@ -1,6 +1,9 @@
 -- Root directory
 local root_dir = ""
 
+-- Simple Tiled Implementation 
+local sti
+
 -- Lists a bunch of images
 local images
 
@@ -12,6 +15,8 @@ local object
 
 function love.load()
     
+    sti = require 'libraries/sti'
+
     images = {}
     for _,file in pairs(love.filesystem.getDirectoryItems(root_dir.."sprites/")) do
         images[file] = {}
