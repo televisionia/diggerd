@@ -49,7 +49,7 @@ function love.load()
         y = 0
     }
 
-    local data = {}
+    data = {}
 
     data.images = {}
     for _,file in pairs(love.filesystem.getDirectoryItems(root_dir.."sprites/")) do
