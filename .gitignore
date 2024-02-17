@@ -1,10 +1,9 @@
 # vscode stuff
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-!.vscode/*.code-snippets
+.vscode/
+.vscode/settings.json
+.vscode/tasks.json
+.vscode/launch.json
+.vscode/extensions.json
 
 # Local History for Visual Studio Code
 .history/
@@ -52,4 +51,3 @@ luac.out
 *.i*86
 *.x86_64
 *.hex
-

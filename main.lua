@@ -13,8 +13,11 @@ local player
 -- Camera library
 local camera
 
--- Camera object
-local cam
+-- Camera object for the game world
+local world_cam
+
+-- Camera object for the game hud
+local hud_cam
 
 -- Simple Tiled Implementation 
 local sti
@@ -30,7 +33,8 @@ local game
 
 function love.load()
     camera = require 'libraries.camera'
-    cam = camera()
+    world_cam = camera()
+    hud_cam = camera()
 
     sti = require 'libraries/sti'
     push = require 'libraries/push'
@@ -40,7 +44,7 @@ function love.load()
     push:setupScreen(gameWidth, gameHeight, windowWidth, windowHeight, {fullscreen = false, pixelperfect = true})
 
     player = {
-        speed = 100,
+        speed = 300,
         x = 0,
         y = 0
     }
@@ -83,7 +87,7 @@ function love.load()
 
     function game.object:new(objectname, location, properties)
         location[objectname] = {}
-        for property,value in pairs(object.default_properties) do
+        for property,value in pairs(game.object.default_properties) do
             location[objectname][property] = value
         end
 
@@ -98,7 +102,7 @@ function love.load()
         object = nil
     end
 
-    current_map = data.maps["menu.lua"]
+    current_map = data.maps["leveltest.lua"]
 end
 
 function love.update(dt)
@@ -114,14 +118,16 @@ function love.update(dt)
         player.y = player.y + player.speed * dt
     end
 
-    cam:lookAt(player.x, player.y)
+    world_cam:lookAt(player.x, player.y)
 end
 
 function love.draw()
 
-    cam:attach()
-
     push:start()
+
+    world_cam:attach()
+
+    -- WORLD --
 
     for _,layer in pairs(current_map.layers) do
         current_map:drawLayer(layer)
@@ -133,13 +139,21 @@ function love.draw()
         end
     end
     
-    cam:detach()
+    world_cam:detach()
+
+    -----------
+
+    -- HUD --
+
+    hud_cam:attach()
 
     for _,current_object in pairs(game.hud) do
         love.graphics.draw(current_object.texture, current_object.x, current_object.y, current_object.r, current_object.sx, current_object.sy)
     end
 
-    
+    hud_cam:detach()
+
+    ---------
 
     push:finish()
 
