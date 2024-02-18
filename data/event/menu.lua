@@ -1,0 +1,12 @@
+local menu = {
+    show_menu = function ()
+        GAME.map = DATA.maps["leveltest.lua"]
+        GAME.object:copyobjects(DATA.layout.menu, GAME.hud)
+    end,
+
+    show_info = function ()
+        print("SHOW INFO")
+    end
+}
+
+return menu
