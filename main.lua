@@ -40,10 +40,6 @@ local function split_string (inputstr, sep)
 end
 
 function love.load()
-    camera = require 'libraries.camera'
-    world_cam = camera()
-    hud_cam = camera()
-
     sti = require 'libraries.sti'
     push = require 'libraries.push'
 
@@ -51,10 +47,16 @@ function love.load()
 
     push:setupScreen(gameWidth, gameHeight, windowWidth, windowHeight, {fullscreen = false, pixelperfect = true})
 
+    camera = require 'libraries.camera'
+    world_cam = camera()
+    hud_cam = camera()
+
+    print(hud_cam:position())
+
     PLAYER = {
         speed = 300,
-        x = 0,
-        y = 0
+        x = 340,
+        y = 260
     }
 
     DATA = {}
@@ -145,7 +147,7 @@ function love.load()
             for _,object in pairs(location) do
                 print(object.click_width)
                 print(object.click_height)
-                if object.x <= x and object.x + object.click_width >= object.x and object.y <= y and object.y + object.click_height >= y then
+                if object.x <= x and object.x + object.click_width >= x and object.y <= y and object.y + object.click_height >= y then
                     return object
                 end
             end
@@ -218,7 +220,7 @@ function love.draw()
 
     -- HUD --
 
-    --hud_cam:attach()
+    hud_cam:attach()
 
     for _,current_object in pairs(GAME.hud) do
         if current_object.texture ~= "" then
@@ -229,7 +231,7 @@ function love.draw()
         end
     end
 
-    --hud_cam:detach()
+    hud_cam:detach()
 
     ---------
 
