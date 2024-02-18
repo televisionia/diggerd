@@ -1,5 +1,6 @@
 local general = {
     init_game = function ()
+        PLAYER.speed = 300
         DATA.event.menu:show_menu()
         print("GAME INITIALISED")
     end,

@@ -28,6 +28,9 @@ local hud_cam
 -- Simple Tiled Implementation 
 local sti
 
+-- Mouse data
+local mouse
+
 local function split_string (inputstr, sep)
     if sep == nil then
             sep = "%s"
@@ -53,11 +56,9 @@ function love.load()
 
     print(hud_cam:position())
 
-    PLAYER = {
-        speed = 300,
-        x = 340,
-        y = 260
-    }
+    mouse = {}
+
+    PLAYER = {}
 
     DATA = {}
 
@@ -110,12 +111,16 @@ function love.load()
             y = 0,
             r = 0,
             texture = DATA.images.error["error.png"],
+            selected_texture = "",
             sx = 1,
             sy = 1,
             font_size = 10,
             align_text = "left",
             click_width = "32",
-            click_height = "32"
+            click_height = "32",
+            visible = true,
+            events = {},
+            hover = false
         }
     }
 
@@ -145,8 +150,6 @@ function love.load()
     function GAME.object:check_for_object_at(x, y, location)
         if x ~= nil and y ~= nil then
             for _,object in pairs(location) do
-                print(object.click_width)
-                print(object.click_height)
                 if object.x <= x and object.x + object.click_width >= x and object.y <= y and object.y + object.click_height >= y then
                     return object
                 end
@@ -155,9 +158,19 @@ function love.load()
         return nil
     end
 
-    function GAME.object:activate_object(object)
-        if object.event ~= nil then
-            local event_path = split_string(object.event, ".")
+    function GAME.object:object_is_hovered(object)
+        local x, y = mouse.x, mouse.y
+        if x ~= nil and y ~= nil then
+            if object.x <= x and object.x + object.click_width >= x and object.y <= y and object.y + object.click_height >= y then
+                return true
+            end
+        end
+        return false
+    end
+
+    function GAME.object:activate_object(object, signal)
+        if object.events[signal] ~= nil then
+            local event_path = split_string(object.events[signal], ".")
             event_path[2] = event_path[2]:gsub('%(', '')
             event_path[2] = event_path[2]:gsub('%)', '')
 
@@ -189,10 +202,16 @@ function love.mousepressed(x, y, button)
         local mousepos_x, mousepos_y = push:toGame(x, y)
         local find_object = GAME.object:check_for_object_at(mousepos_x, mousepos_y, GAME.hud)
         if find_object ~= nil then
-            GAME.object:activate_object(find_object)
+            GAME.object:activate_object(find_object, "on_click")
         end
     end
-  end
+end
+
+function love.mousemoved(x, y)
+    if x ~= nil and y ~= nil then
+        mouse.x, mouse.y = push:toGame(x, y)
+    end
+end
 
 function love.draw()
 
@@ -224,7 +243,11 @@ function love.draw()
 
     for _,current_object in pairs(GAME.hud) do
         if current_object.texture ~= "" then
-            love.graphics.draw(current_object.texture, current_object.x, current_object.y, current_object.r, current_object.sx, current_object.sy)
+            if current_object.texture_select ~= "" and GAME.object:object_is_hovered(current_object) then
+                love.graphics.draw(current_object.texture_select, current_object.x - current_object.selected_offset_x, current_object.y - current_object.selected_offset_y, current_object.r, current_object.sx, current_object.sy)
+            else
+                love.graphics.draw(current_object.texture, current_object.x, current_object.y, current_object.r, current_object.sx, current_object.sy)
+            end
         end
         if current_object.text then
             love.graphics.printf(current_object.text, current_object.x + current_object.text_offset_x, current_object.y + current_object.text_offset_y, current_object.text_width, current_object.align_text)
