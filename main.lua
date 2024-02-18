@@ -28,6 +28,17 @@ local hud_cam
 -- Simple Tiled Implementation 
 local sti
 
+local function split_string (inputstr, sep)
+    if sep == nil then
+            sep = "%s"
+    end
+    local t={}
+    for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
+            table.insert(t, str)
+    end
+    return t
+end
+
 function love.load()
     camera = require 'libraries.camera'
     world_cam = camera()
@@ -100,6 +111,9 @@ function love.load()
             sx = 1,
             sy = 1,
             font_size = 10,
+            align_text = "left",
+            click_width = "32",
+            click_height = "32"
         }
     }
 
@@ -120,11 +134,34 @@ function love.load()
         object = nil
     end
 
-    function GAME.object:copyobjects(objects, location)
+    function GAME.object:copy_objects(objects, location)
         for object_name,object_properties in pairs(objects) do
             GAME.object:new(object_name, location, object_properties)
         end
-    end    
+    end
+
+    function GAME.object:check_for_object_at(x, y, location)
+        if x ~= nil and y ~= nil then
+            for _,object in pairs(location) do
+                print(object.click_width)
+                print(object.click_height)
+                if object.x <= x and object.x + object.click_width >= object.x and object.y <= y and object.y + object.click_height >= y then
+                    return object
+                end
+            end
+        end
+        return nil
+    end
+
+    function GAME.object:activate_object(object)
+        if object.event ~= nil then
+            local event_path = split_string(object.event, ".")
+            event_path[2] = event_path[2]:gsub('%(', '')
+            event_path[2] = event_path[2]:gsub('%)', '')
+
+            DATA.event[event_path[1]][event_path[2]]()
+        end
+    end
 
     DATA.event.general:init_game()
 end
@@ -147,7 +184,11 @@ end
 
 function love.mousepressed(x, y, button)
     if button == 1 then
-        --local mousepos = push:toGame(x, y)
+        local mousepos_x, mousepos_y = push:toGame(x, y)
+        local find_object = GAME.object:check_for_object_at(mousepos_x, mousepos_y, GAME.hud)
+        if find_object ~= nil then
+            GAME.object:activate_object(find_object)
+        end
     end
   end
 
@@ -177,7 +218,7 @@ function love.draw()
 
     -- HUD --
 
-    hud_cam:attach()
+    --hud_cam:attach()
 
     for _,current_object in pairs(GAME.hud) do
         if current_object.texture ~= "" then
@@ -188,7 +229,7 @@ function love.draw()
         end
     end
 
-    hud_cam:detach()
+    --hud_cam:detach()
 
     ---------
 
