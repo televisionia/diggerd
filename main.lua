@@ -14,7 +14,7 @@ ROOT_DIR = ""
 local push
 local gameWidth, gameHeight = 640, 360
 local windowWidth, windowHeight = love.window.getDesktopDimensions()
---windowWidth, windowHeight = windowWidth*.7, windowHeight*.7
+windowWidth, windowHeight = windowWidth*.7, windowHeight*.7
 
 -- Camera library
 local camera
@@ -51,7 +51,7 @@ function love.load()
 
     love.graphics.setDefaultFilter("nearest")
 
-    push:setupScreen(gameWidth, gameHeight, windowWidth, windowHeight, {fullscreen = true, pixelperfect = true})
+    push:setupScreen(gameWidth, gameHeight, windowWidth, windowHeight, {fullscreen = false, pixelperfect = true})
 
     camera = require 'libraries.camera'
     world_cam = camera()
