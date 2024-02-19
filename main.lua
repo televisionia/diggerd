@@ -14,7 +14,7 @@ ROOT_DIR = ""
 local push
 local gameWidth, gameHeight = 640, 360
 local windowWidth, windowHeight = love.window.getDesktopDimensions()
-windowWidth, windowHeight = windowWidth*.7, windowHeight*.7
+--windowWidth, windowHeight = windowWidth*.7, windowHeight*.7
 
 -- Camera library
 local camera
@@ -33,12 +33,15 @@ local mouse
 
 local function split_string (inputstr, sep)
     if sep == nil then
-            sep = "%s"
+        sep = "%s"
     end
+    
     local t={}
+
     for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
-            table.insert(t, str)
+        table.insert(t, str)
     end
+
     return t
 end
 
@@ -48,7 +51,7 @@ function love.load()
 
     love.graphics.setDefaultFilter("nearest")
 
-    push:setupScreen(gameWidth, gameHeight, windowWidth, windowHeight, {fullscreen = false, pixelperfect = true})
+    push:setupScreen(gameWidth, gameHeight, windowWidth, windowHeight, {fullscreen = true, pixelperfect = true})
 
     camera = require 'libraries.camera'
     world_cam = camera()
@@ -85,23 +88,34 @@ function love.load()
         DATA.event[eventfile:match("(.+)%..+$")] = require(ROOT_DIR.."data.event."..eventfile:match("(.+)%..+$"))
     end
 
-    DATA.layout = {}
-    for _,layoutfile in pairs(love.filesystem.getDirectoryItems(ROOT_DIR.."data/layout/")) do
-        DATA.layout[layoutfile:match("(.+)%..+$")] = require(ROOT_DIR.."data.layout."..layoutfile:match("(.+)%..+$"))
+    DATA.object = {}
+    for _,objectfile in pairs(love.filesystem.getDirectoryItems(ROOT_DIR.."data/object/")) do
+        DATA.object[objectfile:match("(.+)%..+$")] = require(ROOT_DIR.."data.object."..objectfile:match("(.+)%..+$"))
     end
 
 
 
     GAME = {
+        -- Stores world objects, separated into 3 tables
         world = {
+            -- Things that collide, move and render physics (units, etc.)
             dynamic = {},
+            -- Things that don't move, but are collidable (buildings, etc.)
             static = {},
+            -- Things that don't have collision or physics, and are purely just for visuals
             visual = {}
         },
+
+        -- Stores HUD
         hud = {},
+
+        -- Stores map, initalised with layers to avoid errors
         map = {
             layers = {}
-        }
+        },
+
+        -- Used for grouping objects within the game
+        group = {}
     }
 
     GAME.object = {
@@ -130,7 +144,7 @@ function love.load()
             location[objectname][property] = value
         end
 
-        if properties then
+        if properties ~= nil then
             for property,value in pairs(properties) do
                 location[objectname][property] = value
             end
@@ -227,7 +241,7 @@ function love.draw()
 
     for category_name,current_category in pairs(GAME.world) do
         for _,current_object in pairs(current_category) do
-            if current_object.texture ~= "" then
+            if current_object.texture ~= "" and current_object.visible == true then
                 love.graphics.draw(current_object.texture, current_object.x, current_object.y, current_object.r, current_object.sx, current_object.sy)
             end
         end
@@ -242,14 +256,14 @@ function love.draw()
     hud_cam:attach()
 
     for _,current_object in pairs(GAME.hud) do
-        if current_object.texture ~= "" then
+        if current_object.texture ~= "" and current_object.visible == true then
             if current_object.texture_select ~= "" and GAME.object:object_is_hovered(current_object) then
                 love.graphics.draw(current_object.texture_select, current_object.x - current_object.selected_offset_x, current_object.y - current_object.selected_offset_y, current_object.r, current_object.sx, current_object.sy)
             else
                 love.graphics.draw(current_object.texture, current_object.x, current_object.y, current_object.r, current_object.sx, current_object.sy)
             end
         end
-        if current_object.text then
+        if current_object.text and current_object.visible == true then
             love.graphics.printf(current_object.text, current_object.x + current_object.text_offset_x, current_object.y + current_object.text_offset_y, current_object.text_width, current_object.align_text)
         end
     end
