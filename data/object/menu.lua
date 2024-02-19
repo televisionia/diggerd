@@ -32,7 +32,11 @@ local menu = {
         y = menu_top_y,
 
         text_offset_x = 0,
-        text_offset_y = 0
+        text_offset_y = 0,
+        
+        tags = {
+            main_menu = true
+        }
     },
 
     menu_start = {
@@ -61,6 +65,10 @@ local menu = {
 
         events = {
             on_click = "general.launch_debug_game()"
+        },
+        
+        tags = {
+            main_menu = true
         }
     },
 
@@ -90,6 +98,10 @@ local menu = {
         
         events = {
             on_click = "menu.toggle_info()"
+        },
+        
+        tags = {
+            main_menu = true
         }
     },
 
@@ -119,6 +131,10 @@ local menu = {
 
         events = {
             on_click = "general.exit_game()"
+        },
+        
+        tags = {
+            main_menu = true
         }
     },
 
@@ -139,7 +155,11 @@ local menu = {
         text_offset_x = 0,
         text_offset_y = 0,
 
-        visible = false
+        visible = false,
+        
+        tags = {
+            main_menu = true
+        }
     }
 }
 

@@ -57,8 +57,6 @@ function love.load()
     world_cam = camera()
     hud_cam = camera()
 
-    print(hud_cam:position())
-
     mouse = {}
 
     PLAYER = {}
@@ -134,7 +132,8 @@ function love.load()
             click_height = "32",
             visible = true,
             events = {},
-            hover = false
+            hover = false,
+            tags = {}
         }
     }
 
@@ -151,13 +150,10 @@ function love.load()
         end
     end
 
-    function GAME.object:remove(object)
-        object = nil
-    end
-
     function GAME.object:copy_objects(objects, location)
         for object_name,object_properties in pairs(objects) do
             GAME.object:new(object_name, location, object_properties)
+            
         end
     end
 

@@ -10,6 +10,7 @@ local general = {
     end,
 
     launch_debug_game = function ()
+        DATA.event.menu:close_menu()
         print("LAUNCH DEBUG GAME")
     end,
 
