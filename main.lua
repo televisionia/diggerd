@@ -25,6 +25,9 @@ local world_cam
 -- Camera object for the game hud
 local hud_cam
 
+-- Sprite animations
+local anim8
+
 -- Simple Tiled Implementation 
 local sti
 
@@ -48,6 +51,7 @@ end
 function love.load()
     sti = require 'libraries.sti'
     push = require 'libraries.push'
+    anim8 = require 'libraries.anim8'
 
     love.graphics.setDefaultFilter("nearest")
 
@@ -59,15 +63,31 @@ function love.load()
 
     mouse = {}
 
-    PLAYER = {}
+    PLAYER = {
+        x = 0,
+        y = 0,
+        zoom = 1
+    }
+    
 
     DATA = {}
 
     DATA.images = {}
     for _,file in pairs(love.filesystem.getDirectoryItems(ROOT_DIR.."sprites/")) do
         DATA.images[file] = {}
-        for _,image in pairs(love.filesystem.getDirectoryItems(ROOT_DIR.."sprites/"..file.."/")) do
-            DATA.images[file][image] = love.graphics.newImage(ROOT_DIR.."sprites/"..file.."/"..image.."/")
+        if file ~= "animation" then
+            for _,image in pairs(love.filesystem.getDirectoryItems(ROOT_DIR.."sprites/"..file.."/")) do
+                DATA.images[file][image] = love.graphics.newImage(ROOT_DIR.."sprites/"..file.."/"..image.."/")
+            end
+        end
+    end
+
+    DATA.images.animation = {}
+    for _,file in pairs(love.filesystem.getDirectoryItems(ROOT_DIR.."sprites/animation/")) do
+        DATA.images.animation[file] = {}
+        for _,image in pairs(love.filesystem.getDirectoryItems(ROOT_DIR.."sprites/animation/"..file.."/")) do
+            DATA.images.animation[file][image] = love.graphics.newImage(ROOT_DIR.."sprites/animation/"..file.."/"..image.."/")
+            DATA.images.animation[file].grid = anim8.newGrid(16, 16, DATA.images.animation[file][image]:getPixelWidth(), DATA.images.animation[file][image]:getPixelHeight())
         end
     end
 
@@ -150,10 +170,33 @@ function love.load()
         end
     end
 
+    function GAME.object:copy(object, name, location)
+        GAME.object:new(name, location, object)
+    end
+
     function GAME.object:copy_objects(objects, location)
         for object_name,object_properties in pairs(objects) do
             GAME.object:new(object_name, location, object_properties)
-            
+        end
+    end
+
+    function GAME.object:create_unit(resource, x, y)
+        local location = GAME.world.dynamic
+        local unit_id = #GAME.world.dynamic + 1
+
+        GAME.object:copy(resource, resource.name.."_id="..unit_id, location)
+
+        local unit = location[resource.name.."_id="..unit_id]
+        unit.anim_list = {}
+
+        unit.anim_list["idle"] = {}
+        for direction = 1, unit.animation.directions do
+            unit.anim_list["idle"][direction] = anim8.newAnimation(unit.animation.grid('1-'..unit.animation.idle_frames, direction), 0.2)
+        end
+
+        unit.anim_list["walk"] = {}
+        for direction = 1, unit.animation.directions do
+            unit.anim_list["walk"][direction] = anim8.newAnimation(unit.animation.grid((unit.animation.idle_frames + 1)..'-'..unit.animation.walk_frames, direction), 0.2)
         end
     end
 
@@ -204,7 +247,23 @@ function love.update(dt)
         PLAYER.y = PLAYER.y + PLAYER.speed * dt
     end
 
-    world_cam:lookAt(PLAYER.x, PLAYER.y)
+    for category_name,current_category in pairs(GAME.world) do
+        for _,current_object in pairs(current_category) do
+            if current_object.current_animation ~= nil then
+                current_object.current_animation:update(dt)
+            end
+        end
+    end
+
+    for _,current_object in pairs(GAME.hud) do
+        if current_object.current_animation ~= nil then
+            current_object.current_animation:update(dt)
+        end
+    end
+
+    world_cam:lockPosition(PLAYER.x, PLAYER.y)
+    --world_cam:lookAt(PLAYER.x, PLAYER.y)
+    world_cam:zoomTo(PLAYER.zoom)
 end
 
 function love.mousepressed(x, y, button)
@@ -214,6 +273,15 @@ function love.mousepressed(x, y, button)
         if find_object ~= nil then
             GAME.object:activate_object(find_object, "on_click")
         end
+    elseif button == 3 then
+        PLAYER.zoom = 1
+    end
+end
+
+function love.wheelmoved(x, y)
+    local zoom_amount = y / 10
+    if PLAYER.zoom + zoom_amount > 0.5 and PLAYER.zoom + zoom_amount < 2 then
+        PLAYER.zoom = PLAYER.zoom + zoom_amount
     end
 end
 
@@ -237,8 +305,16 @@ function love.draw()
 
     for category_name,current_category in pairs(GAME.world) do
         for _,current_object in pairs(current_category) do
-            if current_object.texture ~= "" and current_object.visible == true then
-                love.graphics.draw(current_object.texture, current_object.x, current_object.y, current_object.r, current_object.sx, current_object.sy)
+            if current_object.visible == true then
+                if current_object.texture ~= "" then
+                    love.graphics.draw(current_object.texture, current_object.x, current_object.y, current_object.r, current_object.sx, current_object.sy)
+                end
+
+                if current_object.unit ~= nil then
+                    current_object.anim_list[current_object.unit.visual_state][current_object.unit.direction]:draw(current_object.animation.sheet, current_object.x, current_object.y, current_object.r, current_object.sx, current_object.sy)
+                elseif current_object.current_animation ~= nil then
+                    current_object.current_animation:draw(current_object.animation.sheet, current_object.x, current_object.y, current_object.sx, current_object.sy)
+                end
             end
         end
     end
@@ -252,16 +328,22 @@ function love.draw()
     hud_cam:attach()
 
     for _,current_object in pairs(GAME.hud) do
-        if current_object.texture ~= "" and current_object.visible == true then
+        if current_object.visible == true then
             if current_object.texture_select ~= "" and GAME.object:object_is_hovered(current_object) then
                 love.graphics.draw(current_object.texture_select, current_object.x - current_object.selected_offset_x, current_object.y - current_object.selected_offset_y, current_object.r, current_object.sx, current_object.sy)
-            else
+            elseif current_object.texture ~= "" then
                 love.graphics.draw(current_object.texture, current_object.x, current_object.y, current_object.r, current_object.sx, current_object.sy)
             end
+
+            if current_object.text then
+                love.graphics.printf(current_object.text, current_object.x + current_object.text_offset_x, current_object.y + current_object.text_offset_y, current_object.text_width, current_object.align_text)
+            end
+
+            if current_object.current_animation then
+                current_object.current_animation:draw(current_object.animation.sheet, current_object.x, current_object.y, current_object.sx, current_object.sy)
+            end
         end
-        if current_object.text and current_object.visible == true then
-            love.graphics.printf(current_object.text, current_object.x + current_object.text_offset_x, current_object.y + current_object.text_offset_y, current_object.text_width, current_object.align_text)
-        end
+        
     end
 
     hud_cam:detach()
