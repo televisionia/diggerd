@@ -291,7 +291,7 @@ function love.mousepressed(x, y, button)
         
         local mousepos_x, mousepos_y = world_cam:worldCoords(push:toGame(x, y))
 
-        local find_object = GAME.object:check_for_objects_at(mousepos_x, mousepos_y, {GAME.world.dynamic})
+        local find_object = GAME.object:check_for_objects_at(mousepos_x, mousepos_y, {GAME.world.dynamic, GAME.world.static})
         if find_object ~= nil then
             GAME.object:activate_object(find_object, "on_click")
             if find_object.selectable then
