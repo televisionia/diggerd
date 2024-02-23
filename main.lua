@@ -34,6 +34,9 @@ local sti
 -- Mouse data
 local mouse
 
+-- Counts units that have been made, value doesnt decrease (to be replaced)
+local unit_count
+
 local function split_string (inputstr, sep)
     if sep == nil then
         sep = "%s"
@@ -61,17 +64,22 @@ function love.load()
     world_cam = camera()
     hud_cam = camera()
 
+    unit_count = 0
+
     mouse = {}
 
     PLAYER = {
         x = 0,
         y = 0,
-        zoom = 1
+        zoom = 1,
+        selection = {}
     }
     
 
     DATA = {}
 
+    -- Stores images separately in the /sprites folders
+    -- DATA.images.menu, DATA.images.menu, etc
     DATA.images = {}
     for _,file in pairs(love.filesystem.getDirectoryItems(ROOT_DIR.."sprites/")) do
         DATA.images[file] = {}
@@ -82,6 +90,8 @@ function love.load()
         end
     end
 
+    -- Stores animation data in the /sprites/animation folder
+    -- Also creates a animation grid for each spritesheet
     DATA.images.animation = {}
     for _,file in pairs(love.filesystem.getDirectoryItems(ROOT_DIR.."sprites/animation/")) do
         DATA.images.animation[file] = {}
@@ -91,27 +101,29 @@ function love.load()
         end
     end
 
+    -- Stores fonts in the /fonts folder
     DATA.fonts = {}
     for _,fontfile in pairs(love.filesystem.getDirectoryItems(ROOT_DIR.."/fonts/")) do
         DATA.fonts[fontfile:match("(.+)%..+$")] = love.graphics.newFont(ROOT_DIR.."/fonts/"..fontfile)
     end
 
+    -- Stores map data in the /maps folder
     DATA.maps = {}
     for _,map in pairs(love.filesystem.getDirectoryItems(ROOT_DIR.."maps/mapfiles/")) do
         DATA.maps[map] = sti(ROOT_DIR.."maps/mapfiles/"..map)
     end
 
+    -- Stores events from the /data/event files
     DATA.event = {}
     for _,eventfile in pairs(love.filesystem.getDirectoryItems(ROOT_DIR.."data/event/")) do
         DATA.event[eventfile:match("(.+)%..+$")] = require(ROOT_DIR.."data.event."..eventfile:match("(.+)%..+$"))
     end
 
+    -- Stores objects (such as units, ui, etc.) from the /data/object files
     DATA.object = {}
     for _,objectfile in pairs(love.filesystem.getDirectoryItems(ROOT_DIR.."data/object/")) do
         DATA.object[objectfile:match("(.+)%..+$")] = require(ROOT_DIR.."data.object."..objectfile:match("(.+)%..+$"))
     end
-
-
 
     GAME = {
         -- Stores world objects, separated into 3 tables
@@ -153,7 +165,8 @@ function love.load()
             visible = true,
             events = {},
             hover = false,
-            tags = {}
+            tags = {},
+            selectable = false
         }
     }
 
@@ -181,8 +194,10 @@ function love.load()
     end
 
     function GAME.object:create_unit(resource, x, y)
+        unit_count = unit_count + 1
+
         local location = GAME.world.dynamic
-        local unit_id = #GAME.world.dynamic + 1
+        local unit_id = unit_count
 
         GAME.object:copy(resource, resource.name.."_id="..unit_id, location)
 
@@ -200,11 +215,13 @@ function love.load()
         end
     end
 
-    function GAME.object:check_for_object_at(x, y, location)
+    function GAME.object:check_for_object_at(x, y, locations_table)
         if x ~= nil and y ~= nil then
-            for _,object in pairs(location) do
-                if object.x <= x and object.x + object.click_width >= x and object.y <= y and object.y + object.click_height >= y then
-                    return object
+            for _,location in pairs(locations_table) do
+                for _,object in pairs(location) do
+                    if object.x <= x and object.x + object.click_width >= x and object.y <= y and object.y + object.click_height >= y then
+                        return object
+                    end
                 end
             end
         end
@@ -268,10 +285,21 @@ end
 
 function love.mousepressed(x, y, button)
     if button == 1 then
+        PLAYER.selection = {}
         local mousepos_x, mousepos_y = push:toGame(x, y)
-        local find_object = GAME.object:check_for_object_at(mousepos_x, mousepos_y, GAME.hud)
+        local find_object = GAME.object:check_for_object_at(mousepos_x, mousepos_y, {GAME.hud, GAME.world.dynamic})
         if find_object ~= nil then
             GAME.object:activate_object(find_object, "on_click")
+            if find_object.selectable == true then
+                print("selection added")
+                PLAYER.selection[find_object] = true
+            end
+        end
+    elseif button == 2 then
+        local mousepos_x, mousepos_y = push:toGame(x, y)
+        local find_object = GAME.object:check_for_object_at(mousepos_x, mousepos_y, {GAME.hud, GAME.world.dynamic})
+        if find_object ~= nil then
+            GAME.object:activate_object(find_object, "on_alt_click")
         end
     elseif button == 3 then
         PLAYER.zoom = 1
@@ -315,6 +343,13 @@ function love.draw()
                 elseif current_object.current_animation ~= nil then
                     current_object.current_animation:draw(current_object.animation.sheet, current_object.x, current_object.y, current_object.sx, current_object.sy)
                 end
+
+                if PLAYER.selection[current_object] == true then
+                    love.graphics.draw(DATA.images.select["select_topleft.png"], current_object.x - 1, current_object.y - 1)
+                    love.graphics.draw(DATA.images.select["select_bottomleft.png"], current_object.x - 1, current_object.y + current_object.texture:getPixelHeight() + 1)
+                    love.graphics.draw(DATA.images.select["select_topright.png"], current_object.x + current_object.texture:getPixelWidth() + 1, current_object.y - 1)
+                    love.graphics.draw(DATA.images.select["select_bottomright.png"], current_object.x + current_object.texture:getPixelWidth() + 1, current_object.y + current_object.texture:getPixelHeight() + 1)
+                end
             end
         end
     end
@@ -342,8 +377,14 @@ function love.draw()
             if current_object.current_animation then
                 current_object.current_animation:draw(current_object.animation.sheet, current_object.x, current_object.y, current_object.sx, current_object.sy)
             end
+
+            if PLAYER.selection[current_object] == true then
+                love.graphics.draw(DATA.images.select["select_topleft.png"], current_object.x - 1, current_object.y - 1)
+                love.graphics.draw(DATA.images.select["select_bottomleft.png"], current_object.x - 1, current_object.y + current_object.texture:getPixelHeight() + 1)
+                love.graphics.draw(DATA.images.select["select_topright.png"], current_object.x + current_object.texture:getPixelWidth() + 1, current_object.y - 1)
+                love.graphics.draw(DATA.images.select["select_bottomright.png"], current_object.x + current_object.texture:getPixelWidth() + 1, current_object.y + current_object.texture:getPixelHeight() + 1)
+            end
         end
-        
     end
 
     hud_cam:detach()
