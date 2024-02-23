@@ -215,7 +215,7 @@ function love.load()
         end
     end
 
-    function GAME.object:check_for_object_at(x, y, locations_table)
+    function GAME.object:check_for_objects_at(x, y, locations_table)
         if x ~= nil and y ~= nil then
             for _,location in pairs(locations_table) do
                 for _,object in pairs(location) do
@@ -285,19 +285,34 @@ end
 
 function love.mousepressed(x, y, button)
     if button == 1 then
-        PLAYER.selection = {}
-        local mousepos_x, mousepos_y = push:toGame(x, y)
-        local find_object = GAME.object:check_for_object_at(mousepos_x, mousepos_y, {GAME.hud, GAME.world.dynamic})
+        if not love.keyboard.isDown("lshift") then
+            PLAYER.selection = {}
+        end
+        
+        local mousepos_x, mousepos_y = world_cam:worldCoords(push:toGame(x, y))
+
+        local find_object = GAME.object:check_for_objects_at(mousepos_x, mousepos_y, {GAME.world.dynamic})
         if find_object ~= nil then
             GAME.object:activate_object(find_object, "on_click")
-            if find_object.selectable == true then
-                print("selection added")
+            if find_object.selectable then
                 PLAYER.selection[find_object] = true
             end
+            return
+        end
+
+        local mousepos_x, mousepos_y = hud_cam:worldCoords(push:toGame(x, y))
+        
+        local find_object = GAME.object:check_for_objects_at(mousepos_x, mousepos_y, {GAME.hud})
+        if find_object ~= nil then
+            GAME.object:activate_object(find_object, "on_click")
+            if find_object.selectable then
+                PLAYER.selection[find_object] = true
+            end
+            return
         end
     elseif button == 2 then
-        local mousepos_x, mousepos_y = push:toGame(x, y)
-        local find_object = GAME.object:check_for_object_at(mousepos_x, mousepos_y, {GAME.hud, GAME.world.dynamic})
+        local mousepos_x, mousepos_y = world_cam:worldCoords(push:toGame(x, y))
+        local find_object = GAME.object:check_for_objects_at(mousepos_x, mousepos_y, {GAME.hud, GAME.world.dynamic})
         if find_object ~= nil then
             GAME.object:activate_object(find_object, "on_alt_click")
         end
@@ -346,9 +361,9 @@ function love.draw()
 
                 if PLAYER.selection[current_object] == true then
                     love.graphics.draw(DATA.images.select["select_topleft.png"], current_object.x - 1, current_object.y - 1)
-                    love.graphics.draw(DATA.images.select["select_bottomleft.png"], current_object.x - 1, current_object.y + current_object.texture:getPixelHeight() + 1)
-                    love.graphics.draw(DATA.images.select["select_topright.png"], current_object.x + current_object.texture:getPixelWidth() + 1, current_object.y - 1)
-                    love.graphics.draw(DATA.images.select["select_bottomright.png"], current_object.x + current_object.texture:getPixelWidth() + 1, current_object.y + current_object.texture:getPixelHeight() + 1)
+                    love.graphics.draw(DATA.images.select["select_bottomleft.png"], current_object.x - 1, current_object.y + current_object.click_height + 1)
+                    love.graphics.draw(DATA.images.select["select_topright.png"], current_object.x + current_object.click_width + 1, current_object.y - 1)
+                    love.graphics.draw(DATA.images.select["select_bottomright.png"], current_object.x + current_object.click_width + 1, current_object.y + current_object.click_height + 1)
                 end
             end
         end
@@ -380,9 +395,9 @@ function love.draw()
 
             if PLAYER.selection[current_object] == true then
                 love.graphics.draw(DATA.images.select["select_topleft.png"], current_object.x - 1, current_object.y - 1)
-                love.graphics.draw(DATA.images.select["select_bottomleft.png"], current_object.x - 1, current_object.y + current_object.texture:getPixelHeight() + 1)
-                love.graphics.draw(DATA.images.select["select_topright.png"], current_object.x + current_object.texture:getPixelWidth() + 1, current_object.y - 1)
-                love.graphics.draw(DATA.images.select["select_bottomright.png"], current_object.x + current_object.texture:getPixelWidth() + 1, current_object.y + current_object.texture:getPixelHeight() + 1)
+                love.graphics.draw(DATA.images.select["select_bottomleft.png"], current_object.x - 1, current_object.y + current_object.click_height + 1)
+                love.graphics.draw(DATA.images.select["select_topright.png"], current_object.x + current_object.click_width + 1, current_object.y - 1)
+                love.graphics.draw(DATA.images.select["select_bottomright.png"], current_object.x + current_object.click_width + 1, current_object.y + current_object.click_height + 1)
             end
         end
     end

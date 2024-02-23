@@ -34,6 +34,9 @@ local unit = {
         
         texture = "",
 
+        click_width = 16,
+        click_height = 16,
+
         animation = {
             directions = 8,
             walk_frames = 5,
