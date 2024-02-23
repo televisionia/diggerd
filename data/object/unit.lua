@@ -29,8 +29,13 @@ local unit = {
         type = "unit_infantry",
         name = "stickman",
         description = "Unit used for testing",
+
+        selectable = true,
         
         texture = "",
+
+        click_width = 16,
+        click_height = 16,
 
         animation = {
             directions = 8,
