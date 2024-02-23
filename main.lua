@@ -55,7 +55,7 @@ function love.load()
 
     love.graphics.setDefaultFilter("nearest")
 
-    push:setupScreen(gameWidth, gameHeight, windowWidth, windowHeight, {fullscreen = false, pixelperfect = true})
+    push:setupScreen(gameWidth, gameHeight, windowWidth, windowHeight, {fullscreen = false, pixelperfect = false})
 
     camera = require 'libraries.camera'
     world_cam = camera()
