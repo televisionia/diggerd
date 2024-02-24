@@ -181,7 +181,8 @@ function love.load()
             events = {},
             hover = false,
             tags = {},
-            selectable = false
+            selectable = false,
+            passable = false
         }
     }
 
