@@ -37,6 +37,13 @@ local mouse
 -- Counts units that have been made, value doesnt decrease (to be replaced)
 local unit_count
 
+local function is_point_in_rectangle(object, point_a, point_b)
+    if point_a.x ~= nil and point_a.y ~= nil and point_b.x ~= nil and point_b.y ~= nil and object.x ~= nil and object.y ~= nil then
+        -- terror
+        return (point_b.x >= point_a.x and point_b.y >= point_a.y and point_b.x >= object.x and point_b.y >= object.y and object.x >= point_a.x and object.y >= point_a.y) or (point_b.x <= point_a.x and point_b.y <= point_a.y and point_b.x <= object.x and point_b.y <= object.y and object.x <= point_a.x and object.y <= point_a.y) or (point_b.x >= point_a.x and point_b.y <= point_a.y and point_b.x >= object.x and point_b.y <= object.y and object.x >= point_a.x and object.y <= point_a.y) or (point_b.x <= point_a.x and point_b.y >= point_a.y and point_b.x <= object.x and point_b.y >= object.y and object.x <= point_a.x and object.y >= point_a.y)
+    end
+end
+
 local function split_string (inputstr, sep)
     if sep == nil then
         sep = "%s"
@@ -66,13 +73,21 @@ function love.load()
 
     unit_count = 0
 
-    mouse = {}
+    mouse = {
+        x = 0,
+        y = 0
+    }
 
     PLAYER = {
         x = 0,
         y = 0,
         zoom = 1,
-        selection = {}
+        selection = {},
+        select_box = {
+            enabled = false,
+            initial_x = 0,
+            initial_y = 0
+        }
     }
     
 
@@ -215,7 +230,7 @@ function love.load()
         end
     end
 
-    function GAME.object:check_for_objects_at(x, y, locations_table)
+    function GAME.object:get_object_at(x, y, locations_table)
         if x ~= nil and y ~= nil then
             for _,location in pairs(locations_table) do
                 for _,object in pairs(location) do
@@ -226,6 +241,36 @@ function love.load()
             end
         end
         return nil
+    end
+
+    function GAME.object:get_objects_at(x, y, locations_table)
+        local object_list = {}
+        if x ~= nil and y ~= nil then
+            for _,location in pairs(locations_table) do
+                for _,object in pairs(location) do
+                    if object.x <= x and object.x + object.click_width >= x and object.y <= y and object.y + object.click_height >= y then
+                        object_list.insert(object)
+                    end
+                end
+            end
+        end
+        return object_list
+    end
+
+    function GAME.object:get_objects_at_between(start_x, start_y, end_x, end_y, locations_table)
+        local object_list = {}
+        if start_x ~= nil and start_y ~= nil and end_x ~= nil and end_y ~= nil then
+            for _,location in pairs(locations_table) do
+                for _,object in pairs(location) do
+                    local point_check = is_point_in_rectangle(object, {x = start_x, y = start_y}, {x = end_x, y = end_y})
+
+                    if point_check == true then
+                        table.insert(object_list, object)
+                    end
+                end
+            end
+        end
+        return object_list
     end
 
     function GAME.object:object_is_hovered(object)
@@ -287,16 +332,18 @@ end
 
 function love.mousepressed(x, y, button)
     if button == 1 then
+        
+
         if not love.keyboard.isDown("lshift") then
             PLAYER.selection = {}
         end
         
         local mousepos_x, mousepos_y = world_cam:worldCoords(push:toGame(x, y))
 
-        local find_object = GAME.object:check_for_objects_at(mousepos_x, mousepos_y, {GAME.world.dynamic, GAME.world.static})
+        local find_object = GAME.object:get_object_at(mousepos_x, mousepos_y, {GAME.world.dynamic, GAME.world.static})
         if find_object ~= nil then
             GAME.object:activate_object(find_object, "on_click")
-            if find_object.selectable then
+            if find_object.selectable == true then
                 PLAYER.selection[find_object] = true
             end
             return
@@ -304,22 +351,46 @@ function love.mousepressed(x, y, button)
 
         local mousepos_x, mousepos_y = hud_cam:worldCoords(push:toGame(x, y))
         
-        local find_object = GAME.object:check_for_objects_at(mousepos_x, mousepos_y, {GAME.hud})
+        local find_object = GAME.object:get_object_at(mousepos_x, mousepos_y, {GAME.hud})
         if find_object ~= nil then
             GAME.object:activate_object(find_object, "on_click")
-            if find_object.selectable then
+            if find_object.selectable == true then
                 PLAYER.selection[find_object] = true
             end
             return
         end
+
+        PLAYER.select_box.enabled = true
+        PLAYER.select_box.initial_x, PLAYER.select_box.initial_y = world_cam:worldCoords(push:toGame(x, y))
     elseif button == 2 then
         local mousepos_x, mousepos_y = world_cam:worldCoords(push:toGame(x, y))
-        local find_object = GAME.object:check_for_objects_at(mousepos_x, mousepos_y, {GAME.hud, GAME.world.dynamic})
+        local find_object = GAME.object:get_object_at(mousepos_x, mousepos_y, {GAME.hud, GAME.world.dynamic})
         if find_object ~= nil then
             GAME.object:activate_object(find_object, "on_alt_click")
         end
     elseif button == 3 then
         PLAYER.zoom = 1
+    end
+end
+
+function love.mousereleased(x, y, button)
+    if button == 1 then
+        if PLAYER.select_box.enabled == true then
+            local end_x, end_y = world_cam:worldCoords(push:toGame(x, y))
+            PLAYER.select_box.enabled = false
+            local objects_to_select = GAME.object:get_objects_at_between(PLAYER.select_box.initial_x, PLAYER.select_box.initial_y, end_x, end_y, {GAME.world.dynamic})
+            
+            if #objects_to_select > 0 then
+                if not love.keyboard.isDown("lshift") then
+                    PLAYER.selection = {}
+                end
+                for _,object in pairs(objects_to_select) do
+                    if object.selectable == true then
+                        PLAYER.selection[object] = true
+                    end
+                end
+            end
+        end
     end
 end
 
@@ -369,6 +440,13 @@ function love.draw()
                 end
             end
         end
+    end
+
+    if PLAYER.select_box.enabled == true then
+        local x, y = world_cam:worldCoords(mouse.x, mouse.y)
+        love.graphics.setColor(1, 1, 1, 0.4)
+        love.graphics.rectangle("fill", PLAYER.select_box.initial_x, PLAYER.select_box.initial_y, x - PLAYER.select_box.initial_x, y - PLAYER.select_box.initial_y)
+        love.graphics.setColor(1, 1, 1)
     end
     
     world_cam:detach()
