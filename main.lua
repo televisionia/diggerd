@@ -240,11 +240,13 @@ function love.load()
 
     function GAME.object:activate_object(object, signal)
         if object.events[signal] ~= nil then
-            local event_path = split_string(object.events[signal], ".")
-            event_path[2] = event_path[2]:gsub('%(', '')
-            event_path[2] = event_path[2]:gsub('%)', '')
+            local event_path = split_string(object.events[signal].event, ".")
+            local event_arguments = object.events[signal].arguments
 
-            DATA.event[event_path[1]][event_path[2]]()
+            if event_arguments == nil then
+                event_arguments = {}
+            end
+            DATA.event[event_path[1]][event_path[2]](event_arguments)
         end
     end
 

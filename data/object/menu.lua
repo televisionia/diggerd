@@ -64,7 +64,9 @@ local menu = {
         text_offset_y = button_text_offset_y,
 
         events = {
-            on_click = "general.launch_debug_game()"
+            on_click = {
+                event = "general.launch_debug_game"
+            }
         },
         
         tags = {
@@ -97,7 +99,9 @@ local menu = {
         text_offset_y = button_text_offset_y,
         
         events = {
-            on_click = "menu.toggle_info()"
+            on_click = {
+                event = "menu.toggle_info"
+            }
         },
         
         tags = {
@@ -130,7 +134,9 @@ local menu = {
         text_offset_y = button_text_offset_y,
 
         events = {
-            on_click = "general.exit_game()"
+            on_click = {
+                event = "general.exit_game"
+            }
         },
         
         tags = {
