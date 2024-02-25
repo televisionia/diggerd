@@ -1,8 +1,11 @@
--- Direction amount must be 4 or a multiple of 4!
+-- Direction amount must be 4 or a multiple of 4! (Structures are excepted from this rule)
 -- Suggested directions are 4, 8 and maybe 16 if you need that smoothness (especially for vehicular units.)
 
--- For sprite animation locations, the first frames on the left side of the sheet are idle
--- After those, are the walking animations
+-- units and structures MUST have at least a idle animation
+
+-- For sprite animation locations, the first frames on the left side of the sheet are the spawn animation
+-- After those, is the idle animation
+-- After that, is the walking/movement animation
 -- Then after those ones, the rest are action-specific
 -- Each direction of each animation is separated vertically
 
@@ -39,10 +42,15 @@ local unit = {
 
         animation = {
             directions = 8,
-            walk_frames = 5,
-            idle_frames = 1,
-            sheet = DATA.images.animation["unit-stickman"]["spritesheet.png"],
-            grid = DATA.images.animation["unit-stickman"].grid
+            frames = {
+                spawn = 0,
+                idle = 1,
+                move = 4
+            },
+            frame_width = 16,
+            frame_height = 16,
+            frame_time = 0.2,
+            sheet = DATA.images.animation["unit-stickman"]["spritesheet.png"]
         },
 
         x = 0,

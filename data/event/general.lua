@@ -14,7 +14,11 @@ local general = {
         print("LAUNCH DEBUG GAME")
         DATA.event.general:match_start({
             is_debug = true,
-            map = DATA.maps["leveltest.lua"]
+            map = DATA.maps["leveltest.lua"],
+            start_pos = {
+                x = 300,
+                y = 200
+            }
         })
     end,
 
@@ -33,7 +37,8 @@ local general = {
         PLAYER.x, PLAYER.y = start_pos.x, start_pos.y
         GAME.map = map
 
-        GAME.object:create_unit(DATA.object.unit.stickman, 0, 0)
+        GAME.object:create(DATA.object.unit.stickman, 0, 0, 1)
+        GAME.object:create(DATA.object.structure.placeholder, 32, -32, 2)
     end
 }
 
