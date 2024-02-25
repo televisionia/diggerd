@@ -20,7 +20,7 @@ local menu = {
     menu_title = {
         type = "ui_label",
         
-        text = "love game jam test",
+        text = "underground rts",
 
         texture = "",
 

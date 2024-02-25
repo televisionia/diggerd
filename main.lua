@@ -112,7 +112,6 @@ function love.load()
         DATA.images.animation[file] = {}
         for _,image in pairs(love.filesystem.getDirectoryItems(ROOT_DIR.."sprites/animation/"..file.."/")) do
             DATA.images.animation[file][image] = love.graphics.newImage(ROOT_DIR.."sprites/animation/"..file.."/"..image.."/")
-            DATA.images.animation[file].grid = anim8.newGrid(16, 16, DATA.images.animation[file][image]:getPixelWidth(), DATA.images.animation[file][image]:getPixelHeight())
         end
     end
 
@@ -182,7 +181,8 @@ function love.load()
             hover = false,
             tags = {},
             selectable = false,
-            passable = false
+            passable = false,
+            current_animation = nil
         }
     }
 
@@ -209,26 +209,65 @@ function love.load()
         end
     end
 
-    function GAME.object:create_unit(resource, x, y)
+    function GAME.object:create(resource, x, y, direction)
         unit_count = unit_count + 1
 
-        local location = GAME.world.dynamic
+        local location = GAME.world.static
+
+        if resource.type:sub(1,4) == "unit" then
+            location = GAME.world.dynamic
+        end
+
         local unit_id = unit_count
 
         GAME.object:copy(resource, resource.name.."_id="..unit_id, location)
 
-        local unit = location[resource.name.."_id="..unit_id]
-        unit.anim_list = {}
+        local unit_object = location[resource.name.."_id="..unit_id]
+        unit_object.animation.grid = anim8.newGrid(unit_object.animation.frame_width, unit_object.animation.frame_height, unit_object.animation.sheet:getPixelWidth(), unit_object.animation.sheet:getPixelHeight())
+        local framecount = 0
+        unit_object.anim_list = {}
 
-        unit.anim_list["idle"] = {}
-        for direction = 1, unit.animation.directions do
-            unit.anim_list["idle"][direction] = anim8.newAnimation(unit.animation.grid('1-'..unit.animation.idle_frames, direction), 0.2)
+        if unit_object.animation.frames.spawn > 0 then
+            unit_object.anim_list["spawn"] = {}
+            for direction = 1, unit_object.animation.directions do
+                unit_object.anim_list["spawn"][direction] = anim8.newAnimation(unit_object.animation.grid((framecount + 1)..'-'..(framecount + unit_object.animation.frames.spawn), direction), unit_object.animation.frame_time, false)
+            end
+            framecount = framecount + unit_object.animation.frames.spawn
+            unit_object.anim_list["spawn"].no_loop = true
         end
 
-        unit.anim_list["walk"] = {}
-        for direction = 1, unit.animation.directions do
-            unit.anim_list["walk"][direction] = anim8.newAnimation(unit.animation.grid((unit.animation.idle_frames + 1)..'-'..unit.animation.walk_frames, direction), 0.2)
+        if unit_object.animation.frames.idle > 0 then
+            unit_object.anim_list["idle"] = {}
+            for direction = 1, unit_object.animation.directions do
+                unit_object.anim_list["idle"][direction] = anim8.newAnimation(unit_object.animation.grid((framecount + 1)..'-'..(framecount + unit_object.animation.frames.idle), direction), unit_object.animation.frame_time)
+            end
+            framecount = framecount + unit_object.animation.frames.idle
         end
+
+        if unit_object.animation.frames.move > 0 then
+            unit_object.anim_list["move"] = {}
+            for direction = 1, unit_object.animation.directions do
+                unit_object.anim_list["move"][direction] = anim8.newAnimation(unit_object.animation.grid((framecount + 1)..'-'..(framecount + unit_object.animation.frames.move), direction), unit_object.animation.frame_time)
+            end
+            framecount = framecount + unit_object.animation.frames.move
+        end
+
+
+        if unit_object.animation.directions >= direction then
+            unit_object.unit.direction = direction
+        else
+            unit_object.unit.direction = 1
+        end
+        
+        unit_object.x = x
+        unit_object.y = y
+        
+        if unit_object.anim_list.spawn ~= nil then
+            unit_object.unit.visual_state = "spawn"
+        else
+            unit_object.unit.visual_state = "idle" 
+        end
+
     end
 
     function GAME.object:get_object_at(x, y, locations_table)
@@ -316,6 +355,11 @@ function love.update(dt)
         for _,current_object in pairs(current_category) do
             if current_object.current_animation ~= nil then
                 current_object.current_animation:update(dt)
+            elseif current_object.unit ~= nil then
+                if current_object.anim_list[current_object.unit.visual_state][current_object.unit.direction].position == current_object.animation.frames[current_object.unit.visual_state] and current_object.anim_list[current_object.unit.visual_state].no_loop == true then
+                    current_object.unit.visual_state = "idle"
+                end
+                current_object.anim_list[current_object.unit.visual_state][current_object.unit.direction]:update(dt)
             end
         end
     end
@@ -427,10 +471,10 @@ function love.draw()
                     love.graphics.draw(current_object.texture, current_object.x, current_object.y, current_object.r, current_object.sx, current_object.sy)
                 end
 
-                if current_object.unit ~= nil then
+                if current_object.current_animation ~= nil then
+                    current_object.current_animation:draw(current_object.animation.sheet, current_object.x, current_object.y, current_object.r, current_object.sx, current_object.sy)
+                elseif current_object.unit ~= nil then
                     current_object.anim_list[current_object.unit.visual_state][current_object.unit.direction]:draw(current_object.animation.sheet, current_object.x, current_object.y, current_object.r, current_object.sx, current_object.sy)
-                elseif current_object.current_animation ~= nil then
-                    current_object.current_animation:draw(current_object.animation.sheet, current_object.x, current_object.y, current_object.sx, current_object.sy)
                 end
 
                 if PLAYER.selection[current_object] == true then
@@ -466,11 +510,11 @@ function love.draw()
                 love.graphics.draw(current_object.texture, current_object.x, current_object.y, current_object.r, current_object.sx, current_object.sy)
             end
 
-            if current_object.text then
+            if current_object.text ~= nil then
                 love.graphics.printf(current_object.text, current_object.x + current_object.text_offset_x, current_object.y + current_object.text_offset_y, current_object.text_width, current_object.align_text)
             end
 
-            if current_object.current_animation then
+            if current_object.current_animation ~= nil then
                 current_object.current_animation:draw(current_object.animation.sheet, current_object.x, current_object.y, current_object.sx, current_object.sy)
             end
 
