@@ -31,6 +31,10 @@ local anim8
 -- Simple Tiled Implementation 
 local sti
 
+-- For making tweens
+local tween
+local tween_list
+
 -- Mouse data
 local mouse
 
@@ -62,6 +66,9 @@ function love.load()
     sti = require 'libraries.sti'
     push = require 'libraries.push'
     anim8 = require 'libraries.anim8'
+    tween = require 'libraries.tween'
+
+    tween_list = {}
 
     love.graphics.setDefaultFilter("nearest")
 
@@ -199,6 +206,10 @@ function love.load()
         end
     end
 
+    function GAME.object:new_tween(tween_id, length, object, properties)
+        tween_list[tween_id] = tween.new(length, object, properties)
+    end
+
     function GAME.object:copy(object, name, location)
         GAME.object:new(name, location, object)
     end
@@ -267,6 +278,18 @@ function love.load()
         else
             unit_object.unit.visual_state = "idle" 
         end
+    end
+
+    function GAME.object:move_unit(object, x, y)
+        if object.anim_list["move"] ~= false then
+            object.unit.visual_state = "move"
+        end
+        object.unit.next_location = {
+            x = x,
+            y = y
+        }
+        --GAME.object:new_tween(object, (object.x - x) / object.unit.speed + (object.y - y) / object.unit.speed, object, {x = object.unit.next_location, y = object.unit.next_location})
+        GAME.object:new_tween(object, 1, object, {x = object.unit.next_location.x, y = object.unit.next_location.y})
 
     end
 
@@ -364,11 +387,34 @@ function love.update(dt)
         end
     end
 
+    for _,current_object in pairs(GAME.world.dynamic) do
+        if current_object.unit ~= nil then
+            if current_object.unit.next_location ~= nil then
+                current_object.x = current_object.x + current_object.unit.speed * ((current_object.x + current_object.unit.next_location.x) / 100)
+                current_object.y = current_object.y + current_object.unit.speed * ((current_object.y + current_object.unit.next_location.y) / 100)
+            end
+        end
+    end
+
     for _,current_object in pairs(GAME.hud) do
         if current_object.current_animation ~= nil then
             current_object.current_animation:update(dt)
         end
     end
+    
+    for object,tween in pairs(tween_list) do
+        if object.unit ~= nil then
+            if object.x == object.unit.next_location.x and object.y == object.unit.next_location.y then
+                object.unit.visual_state = "idle"
+                tween_list[object] = nil
+            else
+                tween:update(dt)
+            end
+        else
+            tween:update(dt)
+        end
+    end 
+
 
     world_cam:lockPosition(PLAYER.x, PLAYER.y)
     --world_cam:lookAt(PLAYER.x, PLAYER.y)
@@ -412,6 +458,18 @@ function love.mousepressed(x, y, button)
         local find_object = GAME.object:get_object_at(mousepos_x, mousepos_y, {GAME.hud, GAME.world.dynamic})
         if find_object ~= nil then
             GAME.object:activate_object(find_object, "on_alt_click")
+            return
+        end
+
+        if PLAYER.selection ~= {} then
+            for object,_ in pairs(PLAYER.selection) do
+                if object.unit ~= nil then
+                    if object.unit.speed > 0 then
+                        print(object)
+                        GAME.object:move_unit(object, mousepos_x, mousepos_y)
+                    end
+                end
+            end
         end
     elseif button == 3 then
         PLAYER.zoom = 1
