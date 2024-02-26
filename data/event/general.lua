@@ -38,6 +38,8 @@ local general = {
         GAME.map = map
 
         GAME.object:create(DATA.object.unit.stickman, 0, 0, 1)
+        GAME.object:create(DATA.object.unit.stickman, -24, 20, 1)
+        GAME.object:create(DATA.object.unit.stickman, 16, 24, 1)
         GAME.object:create(DATA.object.structure.placeholder, 32, -32, 2)
     end
 }

@@ -20,7 +20,7 @@ local menu = {
     menu_title = {
         type = "ui_label",
         
-        text = "underground rts",
+        text = "DiggerD",
 
         texture = "",
 
@@ -147,7 +147,7 @@ local menu = {
     info_label = {
         type = "ui_label",
 
-        text = "! unreleased version !",
+        text = "! PREMATURELY RELEASED !\nThis is a game I unfourtunately didn't get to finish properly for the jam, however, it is 100% open source and avaliable for anyone to contribute to or modify.\n- Televisionia",
 
         texture = "",
 
@@ -155,7 +155,31 @@ local menu = {
         align_text = "center",
         text_width = button_texture_width * 2,
 
-        x = menu_top_x + button_texture_width * 2,
+        x = menu_top_x + button_texture_width * 1.5,
+        y = menu_top_y + layout_spread,
+
+        text_offset_x = 0,
+        text_offset_y = 0,
+
+        visible = false,
+        
+        tags = {
+            main_menu = true
+        }
+    },
+
+    controls_label = {
+        type = "ui_label",
+
+        text = "CONTROLS\nLeft click to select\nRight click to move units\nHold shift and/or drag to select multiple units\nArrow keys to move camera\nScroll to zoom\n",
+
+        texture = "",
+
+        font = button_font,
+        align_text = "center",
+        text_width = button_texture_width * 2,
+
+        x = menu_top_x + button_texture_width * 3.75,
         y = menu_top_y + layout_spread,
 
         text_offset_x = 0,

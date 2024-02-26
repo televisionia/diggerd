@@ -453,6 +453,7 @@ function love.mousepressed(x, y, button)
 
         PLAYER.select_box.enabled = true
         PLAYER.select_box.initial_x, PLAYER.select_box.initial_y = world_cam:worldCoords(push:toGame(x, y))
+    
     elseif button == 2 then
         local mousepos_x, mousepos_y = world_cam:worldCoords(push:toGame(x, y))
         local find_object = GAME.object:get_object_at(mousepos_x, mousepos_y, {GAME.hud, GAME.world.dynamic})
@@ -462,11 +463,12 @@ function love.mousepressed(x, y, button)
         end
 
         if PLAYER.selection ~= {} then
-            for object,_ in pairs(PLAYER.selection) do
-                if object.unit ~= nil then
-                    if object.unit.speed > 0 then
-                        print(object)
-                        GAME.object:move_unit(object, mousepos_x, mousepos_y)
+            for object,value in pairs(PLAYER.selection) do
+                if value == true then
+                    if object.unit ~= nil then
+                        if object.unit.speed > 0 then
+                            GAME.object:move_unit(object, mousepos_x, mousepos_y)
+                        end
                     end
                 end
             end
@@ -562,7 +564,7 @@ function love.draw()
 
     for _,current_object in pairs(GAME.hud) do
         if current_object.visible == true then
-            if current_object.texture_select ~= "" and GAME.object:object_is_hovered(current_object) then
+            if current_object.texture_select ~= "" and GAME.object:object_is_hovered(current_object) and current_object.selected_offset_x ~= nil and current_object.selected_offset_y ~= nil then
                 love.graphics.draw(current_object.texture_select, current_object.x - current_object.selected_offset_x, current_object.y - current_object.selected_offset_y, current_object.r, current_object.sx, current_object.sy)
             elseif current_object.texture ~= "" then
                 love.graphics.draw(current_object.texture, current_object.x, current_object.y, current_object.r, current_object.sx, current_object.sy)
